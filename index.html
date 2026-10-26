@@ -407,7 +407,51 @@
             `;
         }
 
-        // --- 3. REAL EXAM MOCK QUIZ ---
+        // --- FLASH CARD HANDLERS ---
+        function flipCard() {
+            const cardInner = document.getElementById('card-inner');
+            if (!cardInner) return;
+            isCardFlipped = !isCardFlipped;
+            if (isCardFlipped) {
+                cardInner.classList.add('rotate-y-180');
+            } else {
+                cardInner.classList.remove('rotate-y-180');
+            }
+        }
+
+        function markCard(memorized) {
+            hanjaList[currentCardIndex].memorized = memorized;
+            if (memorized) {
+                userStars += 1;
+                confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+            }
+            updateHeader();
+            nextCard();
+        }
+
+        function nextCard() {
+            if (currentCardIndex < hanjaList.length - 1) {
+                currentCardIndex++;
+            } else {
+                currentCardIndex = 0;
+            }
+            renderCardLearning();
+        }
+
+        function prevCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                renderCardLearning();
+            }
+        }
+
+        // --- QUIZ LOGIC & HANDLERS ---
+        function startQuiz() {
+            currentQuizIndex = 0;
+            quizScore = 0;
+            renderQuizQuestion();
+        }
+
         function renderQuizQuestion() {
             const q = examQuestions[currentQuizIndex];
             selectedOption = null;
@@ -444,6 +488,77 @@
                     <button onclick="submitQuizAnswer()" id="submit-btn" disabled class="w-full py-3.5 bg-gray-300 text-white font-bold rounded-2xl text-sm transition-all mt-4">
                         정답 제출하기
                     </button>
+                </div>
+            `;
+        }
+
+        function selectAnswer(index) {
+            selectedOption = index;
+            document.querySelectorAll('.quiz-opt').forEach((btn, idx) => {
+                if (idx === index) {
+                    btn.classList.add('border-purple-500', 'bg-purple-50', 'text-purple-900');
+                    btn.querySelector('.radio-icon').innerText = '🔘';
+                } else {
+                    btn.classList.remove('border-purple-500', 'bg-purple-50', 'text-purple-900');
+                    btn.querySelector('.radio-icon').innerText = '⚪';
+                }
+            });
+
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('bg-gray-300');
+                submitBtn.classList.add('bg-gradient-to-r', 'from-purple-500', 'to-pink-500', 'shadow-md', 'active:scale-95');
+            }
+        }
+
+        function submitQuizAnswer() {
+            if (selectedOption === null) return;
+
+            const q = examQuestions[currentQuizIndex];
+            const isCorrect = selectedOption === q.answer;
+
+            if (isCorrect) {
+                quizScore++;
+                userStars += 2;
+                updateHeader();
+                confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+                showModal('🎉 정답입니다!', `<p class="text-sm font-bold text-purple-700 my-2">참 잘했어요! ⭐ +2개 획득!</p><p class="text-xs text-gray-500">${q.comment}</p>`, nextQuizStep);
+            } else {
+                showModal('😅 아쉽네요!', `<p class="text-sm font-bold text-red-500 my-2">정답은 <b>${q.answer + 1}번 (${q.options[q.answer]})</b> 입니다.</p><p class="text-xs text-gray-500">${q.comment}</p>`, nextQuizStep);
+            }
+        }
+
+        function nextQuizStep() {
+            if (currentQuizIndex < examQuestions.length - 1) {
+                currentQuizIndex++;
+                renderQuizQuestion();
+            } else {
+                showQuizResult();
+            }
+        }
+
+        function showQuizResult() {
+            const main = document.getElementById('main-content');
+            const starsEarned = quizScore * 2;
+            
+            main.innerHTML = `
+                <div class="text-center space-y-5 animate-fade-in py-6">
+                    <div class="text-6xl animate-bounce">🏆</div>
+                    <div>
+                        <h2 class="text-2xl font-bold font-cute text-purple-900">모의고사 완료!</h2>
+                        <p class="text-xs text-gray-500 mt-1">총 ${examQuestions.length}문제 중 <b class="text-purple-600 font-bold text-sm">${quizScore}문제</b>를 맞혔어요!</p>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-2xl border border-purple-200 max-w-xs mx-auto">
+                        <p class="text-xs text-purple-700 font-bold">획득한 보상</p>
+                        <p class="text-xl font-bold text-amber-500 mt-1">⭐ +${starsEarned} 개</p>
+                    </div>
+
+                    <div class="space-y-2 max-w-xs mx-auto">
+                        <button onclick="startQuiz()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl text-xs shadow-md transition-all active:scale-95">다시 풀기 🔄</button>
+                        <button onclick="switchTab('home')" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs transition-all">홈으로 이동 🏠</button>
+                    </div>
                 </div>
             `;
         }
